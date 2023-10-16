@@ -24,9 +24,9 @@ export default class RingBufferBase<T extends TypedArray> {
   ) {
     this.#readOffset = 0;
     this.#writeOffset = 0;
+    this.#TypedArrayConstructor = TypedArrayConstructor;
     this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
     this.#frameSize = frameSize;
-    this.#TypedArrayConstructor = TypedArrayConstructor;
   }
   #view() {
     return new this.#TypedArrayConstructor(this.#arrayBuffer);
