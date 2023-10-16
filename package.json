@@ -11,8 +11,8 @@
     "audio-processing"
   ],
   "files": [
-    "src",
-    "es"
+    "src/**/*.{ts,js,map,d.ts}",
+    "es/**/*.{ts,js,map,d.ts}"
   ],
   "ava": {
     "extensions": {
