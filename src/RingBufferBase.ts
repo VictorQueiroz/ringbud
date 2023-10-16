@@ -12,21 +12,41 @@ export interface ITypedArrayConstructor<T extends TypedArray> {
   new (buffer: ArrayBuffer): T;
 }
 
+export interface IRingBufferOptions<T extends TypedArray> {
+  frameSize: number;
+  /**
+   * If enabled, whenever the buffer is read, the remaining bytes after the reading
+   * will be written to the beginning of the buffer to avoid storing the information
+   * in-memory, thus, avoiding resizing the buffer when newer data is written.
+   *
+   * the downside of this option is that we copy the buffer every time we read it, but this
+   * allows the ring buffer to deal with very large buffers without resizing the memory.
+   */
+  clamp?: boolean;
+  TypedArrayConstructor: ITypedArrayConstructor<T>;
+}
+
 export default class RingBufferBase<T extends TypedArray> {
   readonly #TypedArrayConstructor;
   readonly #frameSize;
+  readonly #clamp;
   #arrayBuffer;
   #readOffset;
   #writeOffset;
-  public constructor(
-    frameSize: number,
-    TypedArrayConstructor: ITypedArrayConstructor<T>,
-  ) {
+  public constructor({
+    frameSize,
+    clamp = true,
+    TypedArrayConstructor,
+  }: IRingBufferOptions<T>) {
     this.#readOffset = 0;
     this.#writeOffset = 0;
     this.#TypedArrayConstructor = TypedArrayConstructor;
-    this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
+    this.#clamp = clamp;
     this.#frameSize = frameSize;
+    this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
+  }
+  peek() {
+    return this.#view();
   }
   #view() {
     return new this.#TypedArrayConstructor(this.#arrayBuffer);
@@ -48,7 +68,7 @@ export default class RingBufferBase<T extends TypedArray> {
     }
     const remainingBytes = this.#writeOffset - this.#readOffset;
     if (remainingBytes >= sampleCount) {
-      const view = this.#view().subarray(
+      let view = this.#view().subarray(
         this.#readOffset,
         this.#readOffset + sampleCount,
       ) as T;
@@ -56,6 +76,13 @@ export default class RingBufferBase<T extends TypedArray> {
       if (this.#readOffset >= this.#writeOffset) {
         this.#writeOffset = 0;
         this.#readOffset = 0;
+      }
+      if (this.#clamp) {
+        const drained = this.drain();
+        if (drained) {
+          view = view.slice(0) as T;
+          this.write(drained);
+        }
       }
       return view;
     }

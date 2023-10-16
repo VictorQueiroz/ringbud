@@ -14,13 +14,28 @@
     "src",
     "es"
   ],
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--loader=ts-node/esm",
+      "--loader=esmock"
+    ]
+  },
   "scripts": {
-    "prepublishOnly": "npx tsc && npx tsc --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\""
+    "test": "npx ava test/index.ts",
+    "test:coverage": "npx c8 npm run test",
+    "prepublishOnly": "npx tsc && npx tsc --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\" && npm run test"
   },
   "devDependencies": {
+    "ava": "^5.3.1",
+    "c8": "^8.0.1",
     "eslint": "^8.51.0",
+    "esmock": "^2.5.6",
     "pkg-utilities": "^0.0.15",
     "prettier": "^3.0.3",
+    "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
   "main": "./src/index.js",
