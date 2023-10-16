@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": [
+    "index.ts",
+    "RingBufferBase.ts",
+    "RingBufferU8.ts",
+    "RingBufferF32.ts"
+  ]
+}
