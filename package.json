@@ -10,6 +10,10 @@
     "web-audio",
     "audio-processing"
   ],
+  "files": [
+    "src",
+    "es"
+  ],
   "scripts": {
     "prepublishOnly": "npx tsc && npx tsc --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\""
   },
