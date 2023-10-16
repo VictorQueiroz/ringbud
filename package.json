@@ -25,6 +25,7 @@
     "./src/index.d.ts": "./es/src/index.d.ts",
     "./src/RingBufferU8.ts": "./es/src/RingBufferU8.ts",
     "./src/RingBufferU8.d.ts": "./es/src/RingBufferU8.d.ts",
+    "./src/RingBufferF32.ts": "./es/src/RingBufferF32.ts",
     "./src/RingBufferBase.ts": "./es/src/RingBufferBase.ts",
     "./src/RingBufferBase.d.ts": "./es/src/RingBufferBase.d.ts"
   }
