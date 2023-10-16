@@ -1,0 +1,27 @@
+{
+  "name": "marriage",
+  "version": "1.0.0",
+  "keywords": [
+    "ring-buffer",
+    "ring",
+    "ring-buffer",
+    "worklet",
+    "webworker",
+    "web-audio",
+    "audio-processing"
+  ],
+  "scripts": {
+    "prepublishOnly": "npx tsc && npx tsc --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "eslint": "^8.51.0",
+    "pkg-utilities": "^0.0.15",
+    "prettier": "^3.0.3",
+    "typescript": "^5.2.2"
+  },
+  "main": "./src/index.js",
+  "browser": {
+    "./src/index.ts": "./es/src/index.ts",
+    "./src/index.d.ts": "./es/src/index.d.ts"
+  }
+}
