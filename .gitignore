@@ -4,3 +4,6 @@
 *.map
 tsconfig.tsbuildinfo
 /coverage
+
+# For the "Local History" by xyz plugin of Visual Studio Code
+/.history

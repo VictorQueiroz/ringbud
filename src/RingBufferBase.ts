@@ -45,7 +45,22 @@ export default class RingBufferBase<T extends TypedArray> {
     this.#frameSize = frameSize;
     this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
   }
-  peek() {
+  /**
+   * Returns true if there are no frames to be read
+   * @returns true if there are no frames to be read
+   */
+  public empty() {
+    return this.#remainingBytes() < this.#frameSize;
+  }
+  /**
+   * The returned buffer does not ignore the read samples. It returns the entire record
+   * of the written samples.
+   *
+   * The returned buffer is not a copy, so any changes made to it will be reflected in the
+   * ring buffer.
+   * @returns Reference buffer with the currently written frames
+   */
+  public peek() {
     return this.#view();
   }
   #view() {
@@ -57,16 +72,22 @@ export default class RingBufferBase<T extends TypedArray> {
     this.#writeOffset += value.length;
   }
   public drain() {
-    return this.#read(this.#writeOffset - this.#readOffset);
+    return this.#read(this.#remainingBytes());
   }
   public read(): T | null {
     return this.#read(this.#frameSize);
+  }
+  /**
+   * @returns the number of samples that can be read
+   */
+  #remainingBytes() {
+    return this.#writeOffset - this.#readOffset;
   }
   #read(sampleCount: number): T | null {
     if (!sampleCount) {
       return null;
     }
-    const remainingBytes = this.#writeOffset - this.#readOffset;
+    const remainingBytes = this.#remainingBytes();
     if (remainingBytes >= sampleCount) {
       let view = this.#view().subarray(
         this.#readOffset,

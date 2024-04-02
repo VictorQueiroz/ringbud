@@ -1,5 +1,60 @@
 import test from "ava";
-import { RingBufferBase, RingBufferU8 } from "../src";
+import {
+  RingBufferBase,
+  RingBufferF32,
+  RingBufferU16,
+  RingBufferU8,
+} from "../src";
+
+test("it should return true for the empty method if there is not enough data to form a frame", (t) => {
+  const rb = new RingBufferU8(100);
+  t.true(rb.empty());
+
+  rb.write(new Uint8Array(50).fill(1));
+  t.true(rb.empty());
+});
+
+test("Uint16Array: it should return false, after the ring buffer started to havve enough data to form a frame", (t) => {
+  const rb = new RingBufferU16(100);
+  t.true(rb.empty());
+
+  rb.write(new Uint16Array(50).fill(1));
+  t.true(rb.empty());
+
+  rb.write(new Uint16Array(50).fill(1));
+  t.false(rb.empty());
+
+  t.deepEqual(rb.read(), new Uint16Array(100).fill(1));
+  t.true(rb.empty());
+});
+
+test("Float32Array: it should return false, after the ring buffer started to havve enough data to form a frame", (t) => {
+  const rb = new RingBufferF32(100);
+  t.true(rb.empty());
+
+  rb.write(new Float32Array(50).fill(1));
+  t.true(rb.empty());
+
+  rb.write(new Float32Array(50).fill(1));
+  t.false(rb.empty());
+
+  t.deepEqual(rb.read(), new Float32Array(100).fill(1));
+  t.true(rb.empty());
+});
+
+test("Uint8Array: it should return false, after the ring buffer started to havve enough data to form a frame", (t) => {
+  const rb = new RingBufferU8(100);
+  t.true(rb.empty());
+
+  rb.write(new Uint8Array(50).fill(1));
+  t.true(rb.empty());
+
+  rb.write(new Uint8Array(50).fill(1));
+  t.false(rb.empty());
+
+  t.deepEqual(rb.read(), new Uint8Array(100).fill(1));
+  t.true(rb.empty());
+});
 
 test("it should clamp the buffer to avoid resizing memory", (t) => {
   const rb = new RingBufferU8(100);
