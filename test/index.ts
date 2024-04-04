@@ -56,8 +56,9 @@ test("Uint8Array: it should return false, after the ring buffer started to havve
   t.true(rb.empty());
 });
 
-test("it should clamp the buffer to avoid resizing memory", (t) => {
+test("it should trim the buffer to avoid resizing memory", (t) => {
   const rb = new RingBufferU8(100);
+  rb.frameCacheSize = 1;
   rb.write(
     new Uint8Array([
       ...new Uint8Array(100).fill(1),
@@ -76,10 +77,9 @@ test("it should clamp the buffer to avoid resizing memory", (t) => {
   );
 });
 
-test("it should not clamp, if clamp option is disabled the buffer to avoid resizing memory", (t) => {
+test("it should not trim, if trim option is disabled the buffer to avoid resizing memory", (t) => {
   const rb = new RingBufferBase({
     frameSize: 100,
-    clamp: false,
     TypedArrayConstructor: Uint8Array,
   });
   rb.write(
@@ -99,6 +99,25 @@ test("it should not clamp, if clamp option is disabled the buffer to avoid resiz
       ...new Uint8Array(100).fill(3),
     ]),
   );
+});
+
+test("it should only keep a certain amount of frames in memory", (t) => {
+  const rb = new RingBufferBase({
+    frameSize: 100,
+    frameCacheSize: 2,
+    TypedArrayConstructor: Uint8Array,
+  });
+  rb.write(
+    new Uint8Array([
+      ...new Uint8Array(100).fill(1),
+      ...new Uint8Array(100).fill(2),
+    ]),
+  );
+  t.deepEqual(rb.read(), new Uint8Array(100).fill(1));
+  t.deepEqual(rb.read(), new Uint8Array(100).fill(2));
+  rb.write(new Uint8Array(100).fill(3));
+  t.deepEqual(rb.read(), new Uint8Array(100).fill(3));
+  t.deepEqual(rb.read(), null);
 });
 
 test("it should read always preserving frame sequence", (t) => {
