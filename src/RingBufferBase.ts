@@ -58,6 +58,9 @@ export default class RingBufferBase<T extends TypedArray> {
     frameCacheSize = 0,
     TypedArrayConstructor,
   }: IRingBufferOptions<T>) {
+    if (!frameSize) {
+      throw new Error("frameSize must be greater than 0");
+    }
     this.#readOffset = 0;
     this.#writeOffset = 0;
     this.#TypedArrayConstructor = TypedArrayConstructor;
@@ -90,6 +93,9 @@ export default class RingBufferBase<T extends TypedArray> {
     this.#maybeReallocate(value.length);
     this.#view().set(value, this.#writeOffset);
     this.#writeOffset += value.length;
+  }
+  public remainingFrames() {
+    return this.#remainingFrames();
   }
   public drain() {
     return this.#read(this.#remainingSamples());
