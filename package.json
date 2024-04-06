@@ -26,7 +26,7 @@
   "scripts": {
     "test": "npx ava test/index.js",
     "test:coverage": "npx c8 npm run test",
-    "prepublishOnly": "npx tsc -b src && npx tsc --project src/tsconfig.json --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\" && npm run test"
+    "prepublishOnly": "npx tsc -b src && npx tsc --project src/tsconfig.json --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include \"src/**/*.ts\" && npm run test"
   },
   "devDependencies": {
     "ava": "^5.3.1",
@@ -41,6 +41,8 @@
   },
   "main": "./src/index.js",
   "browser": {
+    "./src/validateNumber.ts": "./es/src/validateNumber.ts",
+    "./src/validateNumber.d.ts": "./es/src/validateNumber.d.ts",
     "./src/index.ts": "./es/src/index.ts",
     "./src/index.d.ts": "./es/src/index.d.ts",
     "./src/RingBufferU8.ts": "./es/src/RingBufferU8.ts",

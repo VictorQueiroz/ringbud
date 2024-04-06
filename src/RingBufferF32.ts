@@ -1,4 +1,4 @@
-import { IRingBufferSubclassOptions } from ".";
+import { IRingBufferSubclassOptions } from "./types";
 import RingBufferBase from "./RingBufferBase";
 
 export default class RingBufferF32 extends RingBufferBase<Float32Array> {

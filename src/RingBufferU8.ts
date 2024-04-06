@@ -1,4 +1,4 @@
-import { IRingBufferSubclassOptions } from ".";
+import { IRingBufferSubclassOptions } from "./types";
 import RingBufferBase from "./RingBufferBase";
 
 export default class RingBufferU8 extends RingBufferBase<Uint8Array> {

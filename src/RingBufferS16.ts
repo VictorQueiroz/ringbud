@@ -1,4 +1,4 @@
-import { IRingBufferSubclassOptions } from ".";
+import { IRingBufferSubclassOptions } from "./types";
 import RingBufferBase from "./RingBufferBase";
 
 export default class RingBufferS16 extends RingBufferBase<Int16Array> {

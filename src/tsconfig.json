@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "include": [
+    "types.ts",
     "index.ts",
     "RingBufferBase.ts",
     "validateNumber.ts",
