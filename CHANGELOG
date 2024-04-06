@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the `options` argument to the each subclass of `RingBufferBase`
+  - Now the user can specify these options during the construction of the class, instead of not being possible to set certain options without using `RingBufferBase` class directly.
+- Add `preallocateFrameCount` option while creating the buffer
+  - Previously this was set to a fixed value of two frames per allocation. The buffer would increase its size by two frames each time it ran out of space. This was not ideal for applications that needed to allocate a large number of frames at once. The new option allows the user to specify the number of frames to allocate each time the buffer runs out of space, and is supposed to allow for more efficient memory management.
+
+### Changed
+
+- Do not allow changes to the `frameCacheSize` property after the `RingBuffer` is created. The property is no longer available for public access.
+
+### Fixed
+
+- Validate `frameSize`, `frameCacheSize`, and `preallocateFrameCount` in the constructor
+  - `frameSize` and `preallocateFrameCount` must be greater than zero
+  - `frameCacheSize` must not be below zero
+  - All these properties must be below the maximum value of an unsigned 32-bit-integer
+
+## [1.0.14] - 2024-04-04
+
 ### Removed
 
 - Remove `clamp` property and replace it with `trim`

@@ -3,6 +3,7 @@
   "include": [
     "index.ts",
     "RingBufferBase.ts",
+    "validateNumber.ts",
     "RingBufferU8.ts",
     "RingBufferU16.ts",
     "RingBufferS16.ts",

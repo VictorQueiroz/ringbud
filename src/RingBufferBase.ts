@@ -1,3 +1,5 @@
+import validateNumber from "./validateNumber";
+
 export type TypedArray =
   | Float32Array
   | Int16Array
@@ -13,16 +15,28 @@ export interface ITypedArrayConstructor<T extends TypedArray> {
 }
 
 export interface IRingBufferOptionalOptions {
-  frameCacheSize: number;
-}
-
-export interface IRingBufferOptions<T extends TypedArray>
-  extends Partial<IRingBufferOptionalOptions> {
-  frameSize: number;
-  TypedArrayConstructor: ITypedArrayConstructor<T>;
-}
-
-export default class RingBufferBase<T extends TypedArray> {
+  /**
+   * The number of frames to preallocate in the ring buffer.
+   *
+   * This option will be used whenever the buffer needs to be reallocated or when it is
+   * allocated for the first time. And the value passed to this option will be used to
+   * determine part of the size of the new buffer.
+   *
+   * For example, if you create a ring buffer with frame size of 10, and `preallocateFrameCount`
+   * is set to 100, the buffer will be allocated with:
+   *
+   * ```ts
+   * // Given
+   * const frameSize = 10;
+   * const preallocateFrameCount = 100;
+   * const frameSampleCountInBytes = TypedArrayConstructor.BYTES_PER_ELEMENT;
+   * // The buffer will be initially allocated with
+   * (frameSize * frameSampleCountInBytes) * preallocateFrameCount
+   * ```
+   *
+   * @default 10
+   */
+  preallocateFrameCount: number;
   /**
    * The offset which to start triming the buffer by dropping what has been read
    * and start writing from the beginning of the buffer.
@@ -43,12 +57,28 @@ export default class RingBufferBase<T extends TypedArray> {
    *
    * The downside of this option is that we copy the buffer every time we read it, but this
    * allows the ring buffer to deal with very large buffers without resizing the memory.
-   * As long as you read the buffer, at least as long as the frameCacheSize.
+   * As long as you read the buffer, at least as long as the `frameCacheSize`.
    *
-   * @default 0 No triming will be done unless this option is set toover.
+   * @default 0 No triming will be done unless this option is set to over 0.
    */
-  public frameCacheSize;
+  frameCacheSize: number;
+}
+
+export interface IRingBufferOptions<T extends TypedArray>
+  extends Partial<IRingBufferOptionalOptions> {
+  frameSize: number;
+  TypedArrayConstructor: ITypedArrayConstructor<T>;
+}
+
+/**
+ * The maximum value that a 32-bit unsigned integer can have
+ */
+const MAX_UINT32 = 0o37777777777;
+
+export default class RingBufferBase<T extends TypedArray> {
   readonly #TypedArrayConstructor;
+  readonly #preallocateFrameCount;
+  readonly #frameCacheSize;
   readonly #frameSize;
   #arrayBuffer;
   #readOffset;
@@ -56,16 +86,39 @@ export default class RingBufferBase<T extends TypedArray> {
   public constructor({
     frameSize,
     frameCacheSize = 0,
+    preallocateFrameCount = 10,
     TypedArrayConstructor,
   }: IRingBufferOptions<T>) {
-    if (!frameSize) {
-      throw new Error("frameSize must be greater than 0");
-    }
+    this.#frameSize = validateNumber({
+      value: frameSize,
+      name: "Frame Size",
+      validations: {
+        min: 1,
+        integer: true,
+        max: MAX_UINT32,
+      },
+    });
+    this.#preallocateFrameCount = validateNumber({
+      value: preallocateFrameCount,
+      name: "Preallocate Frame Count",
+      validations: {
+        min: 1,
+        integer: true,
+        max: MAX_UINT32,
+      },
+    });
+    this.#frameCacheSize = validateNumber({
+      value: frameCacheSize,
+      name: "Frame Cache Size",
+      validations: {
+        min: 0,
+        integer: false,
+        max: MAX_UINT32,
+      },
+    });
     this.#readOffset = 0;
     this.#writeOffset = 0;
     this.#TypedArrayConstructor = TypedArrayConstructor;
-    this.frameCacheSize = frameCacheSize;
-    this.#frameSize = frameSize;
     this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
   }
   /**
@@ -94,8 +147,20 @@ export default class RingBufferBase<T extends TypedArray> {
     this.#view().set(value, this.#writeOffset);
     this.#writeOffset += value.length;
   }
+  /**
+   * This method returns specifically frames that can be read, so,
+   * incomplete frames will not be considered.
+   *
+   * For instance, if the ring buffer have frame size of 100 samples,
+   * and you have 101 samples written, this method will return 1.
+   *
+   * @returns the number of frames that can be read
+   */
   public remainingFrames() {
-    return this.#remainingFrames();
+    /**
+     * Here we floor the division to avoid returning the count of incomplete frames.
+     */
+    return Math.floor(this.#writtenFrameCount());
   }
   public drain() {
     return this.#read(this.#remainingSamples());
@@ -104,20 +169,26 @@ export default class RingBufferBase<T extends TypedArray> {
     return this.#read(this.#frameSize);
   }
   /**
+   * This method simply divide the samples available for reading by the
+   * frame size. So it can contain non-integer values. For precise frame count
+   * use the `remainingFrames` method.
+   * @returns the number of frames that were written so far
+   */
+  #writtenFrameCount() {
+    return this.#remainingSamples() / this.#frameSize;
+  }
+  /**
    * @returns the number of samples that can be read
    */
   #remainingSamples() {
     return this.#writeOffset - this.#readOffset;
   }
-  #remainingFrames() {
-    return this.#remainingSamples() / this.#frameSize;
-  }
   /**
    * @returns true if frameCacheSize is set and the buffer has reached the limit (frameCacheSize)
    */
   #full() {
-    if (this.frameCacheSize > 0) {
-      return this.#remainingFrames() >= this.frameCacheSize;
+    if (this.#frameCacheSize > 0) {
+      return this.#writtenFrameCount() >= this.#frameCacheSize;
     }
     return false;
   }
@@ -159,6 +230,8 @@ export default class RingBufferBase<T extends TypedArray> {
     }
   }
   #initialSize() {
-    return this.#frameSize * this.#TypedArrayConstructor.BYTES_PER_ELEMENT * 2;
+    const bytesPerFrame =
+      this.#frameSize * this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
+    return bytesPerFrame * this.#preallocateFrameCount;
   }
 }
