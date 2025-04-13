@@ -7,3 +7,6 @@ tsconfig.tsbuildinfo
 
 # For the "Local History" by xyz plugin of Visual Studio Code
 /.history
+
+# Ignore the EcmaScript modules folder (`es`)
+/es
