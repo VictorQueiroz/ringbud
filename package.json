@@ -26,7 +26,8 @@
   "scripts": {
     "test": "npx ava test/index.js",
     "test:coverage": "npx c8 npm run test",
-    "prepublishOnly": "npx tsc -b src test && npx tsc --project src/tsconfig.json --module ESNext --outDir es && npx pkg-utilities --set-es-paths --es-folder es --include 'src/**/*.{d.ts,js,map}' && npm run test"
+    "prepublishOnly": "npx tsc -b src test && npx tsc --project src/tsconfig.json --module ESNext --outDir es && npm run prepublishOnly:setEsPaths && npm run test",
+    "prepublishOnly:setEsPaths": "npx pkg-utilities --set-es-paths --es-folder es --include 'src/**/*.{d.ts,js,map}'"
   },
   "devDependencies": {
     "ava": "^5.3.1",
