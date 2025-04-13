@@ -234,4 +234,18 @@ export default class RingBufferBase<T extends TypedArray> {
       this.#frameSize * this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
     return bytesPerFrame * this.#preallocateFrameCount;
   }
+
+  [Symbol.iterator]() {
+    return this[Symbol.asyncIterator]();
+  }
+
+  *[Symbol.asyncIterator]() {
+    let frame: T | null;
+    do {
+      frame = this.read();
+      if (frame !== null) {
+        yield frame;
+      }
+    } while (frame !== null);
+  }
 }

@@ -261,3 +261,41 @@ test("it should drain the ring buffer", (t) => {
   t.deepEqual(rb.read(), null);
   t.deepEqual(rb.drain(), new Uint8Array(40).fill(5));
 });
+
+test('it should iterate over the ring buffer using standard `Symbol.asyncIterator`', async (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(
+    new Uint8Array([
+      ...new Uint8Array(100).fill(1),
+      ...new Uint8Array(100).fill(2),
+      ...new Uint8Array(100).fill(3),
+      ...new Uint8Array(100).fill(4),
+      ...new Uint8Array(100).fill(5),
+    ]),
+  );
+  let count = 0;
+  for await (const frame of rb) {
+    t.deepEqual(frame, new Uint8Array(100).fill(count + 1));
+    count++;
+  }
+  t.is(count, 5);
+});
+
+test('it should iterate over the ring buffer using standard `Symbol.iterator`', (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(
+    new Uint8Array([
+      ...new Uint8Array(100).fill(1),
+      ...new Uint8Array(100).fill(2),
+      ...new Uint8Array(100).fill(3),
+      ...new Uint8Array(100).fill(4),
+      ...new Uint8Array(100).fill(5),
+    ]),
+  );
+  let count = 0;
+  for (const frame of rb) {
+    t.deepEqual(frame, new Uint8Array(100).fill(count + 1));
+    count++;
+  }
+  t.is(count, 5);
+});
