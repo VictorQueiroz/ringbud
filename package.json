@@ -30,15 +30,20 @@
     "prepublishOnly:setEsPaths": "npx pkg-utilities --set-es-paths --es-folder es --include 'src/**/*.{d.ts,js,map}'"
   },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@eslint/json": "^0.11.0",
+    "@eslint/markdown": "^6.3.0",
     "ava": "^5.3.1",
     "c8": "^8.0.1",
-    "eslint": "^8.51.0",
+    "eslint": "^8.57.1",
     "esmock": "^2.5.6",
+    "globals": "^16.0.0",
     "pkg-utilities": "^0.0.15",
     "prettier": "^3.0.3",
     "terser": "^5.30.3",
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.30.1"
   },
   "main": "./src/index.js",
   "browser": {
@@ -70,6 +75,10 @@
     "./src/RingBufferF32.js": "./es/src/RingBufferF32.js",
     "./src/RingBufferF32.d.ts.map": "./es/src/RingBufferF32.d.ts.map",
     "./src/RingBufferF32.d.ts": "./es/src/RingBufferF32.d.ts",
+    "./src/RingBufferException.js.map": "./es/src/RingBufferException.js.map",
+    "./src/RingBufferException.js": "./es/src/RingBufferException.js",
+    "./src/RingBufferException.d.ts.map": "./es/src/RingBufferException.d.ts.map",
+    "./src/RingBufferException.d.ts": "./es/src/RingBufferException.d.ts",
     "./src/RingBufferBase.js.map": "./es/src/RingBufferBase.js.map",
     "./src/RingBufferBase.js": "./es/src/RingBufferBase.js",
     "./src/RingBufferBase.d.ts.map": "./es/src/RingBufferBase.d.ts.map",
