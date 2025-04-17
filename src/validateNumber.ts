@@ -1,3 +1,5 @@
+import RingBufferException from "./RingBufferException";
+
 interface IValidateNumberOptions {
   name: string;
   value: number;
@@ -11,7 +13,7 @@ interface IValidateNumberOptions {
 export default function validateNumber({
   name,
   value,
-  validations,
+  validations
 }: IValidateNumberOptions) {
   const errors = new Array<string>();
   if (validations.integer && !Number.isSafeInteger(value)) {
@@ -24,11 +26,11 @@ export default function validateNumber({
     errors.push(`It must be at least ${validations.min}.`);
   }
   if (errors.length > 0) {
-    throw new Error(
+    throw new RingBufferException(
       [
         `"${value}" is not a valid value for ${name}. It failed to following validations:\n`,
-        ...errors.map((error) => `\t- ${error}`),
-      ].join(""),
+        ...errors.map((error) => `\t- ${error}`)
+      ].join("")
     );
   }
   return value;
