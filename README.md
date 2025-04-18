@@ -1,112 +1,187 @@
-# RingBud: Zero-Dependency, High-Performance RingBuffer Library
+# RingBud
 
-![version](https://img.shields.io/badge/version-1.1.0-blue)
-![TypeScript](https://img.shields.io/badge/-TypeScript-blue)
-![license](https://img.shields.io/badge/license-MIT-green)
-![dependencies](https://img.shields.io/badge/dependencies-0-orange)
-![package size](https://img.shields.io/badge/package%20size-8.2%20kB-yellow)
-![unpacked size](https://img.shields.io/badge/unpacked%20size-36.5%20kB-yellowgreen)
+> A lightweight, high-performance Ring Buffer for streaming data using JavaScript `TypedArray`s.
 
-## Table of Contents
+## Features
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Features](#features)
-  - [New: Clamping](#new-clamping)
-- [Usage](#usage)
-  - [Basic Usage](#basic-usage)
-  - [Advanced Features](#advanced-features)
-- [Memory Management](#memory-management)
-  - [Memory Preallocation](#memory-preallocation)
-  - [Clamping for Large Buffers](#clamping-for-large-buffers)
-- [Extensibility with Typed Arrays](#extensibility-with-typed-arrays)
-- [Zero Dependencies](#zero-dependencies)
-- [Package Size](#package-size)
-- [License](#license)
+- 🧠 **Frame-based buffering** (configurable frame size)
+- ⚡ **Zero dependencies**
+- 🧵 **Supports all major TypedArrays** (e.g. `Float32Array`, `Uint8Array`, etc.)
+- 📦 **Memory efficient** with optional frame trimming
+- 🔁 **Sync & async iteration support**
+- ✅ **Fully tested** and predictable behavior
+- 🧰 **Customizable preallocation and cache options**
 
-## Introduction
-
-RingBud is a high-performance, TypeScript-based RingBuffer library engineered for efficient data storage and retrieval. The API is designed to be both user-friendly and versatile, allowing fine-grained control over buffer operations.
+---
 
 ## Installation
-
-To install RingBud, you can use npm:
 
 ```bash
 npm install ringbud
 ```
 
-Or yarn:
+---
 
-```bash
-yarn add ringbud
+## Quick Start
+
+```ts
+import { RingBufferU8 } from "ringbud";
+
+// Create a ring buffer with frame size of 100
+const rb = new RingBufferU8(100);
+
+// Write 50 bytes (not enough for a full frame)
+rb.write(new Uint8Array(50).fill(1));
+console.log(rb.empty()); // true
+
+// Write 50 more bytes (now we have a complete frame)
+rb.write(new Uint8Array(50).fill(1));
+console.log(rb.empty()); // false
+
+// Read one frame of 100 bytes
+const frame = rb.read();
+console.log(frame); // Uint8Array(100)
+
+// After reading, it becomes empty again
+console.log(rb.empty()); // true
 ```
 
-## Features
+---
 
-- **Type-Safe**: Fully written in TypeScript for robust type safety.
-- **Memory-Efficient**: Features like preallocation and clamping optimize memory usage.
-- **Customizable**: Adjustable frame size to fit diverse application requirements.
-- **High-Speed Read/Write**: Employs optimized algorithms for rapid data access.
-- **Zero Dependencies**: Completely standalone with no external dependencies.
-- **Lightweight**: A minuscule package footprint for efficient deployment.
+## Supported Types
 
-### New: Clamping
+You can instantiate ring buffers for:
 
-The library now includes a clamping feature, enabled by default. When clamping is enabled, the remaining bytes in the buffer are moved to the beginning after each read operation. This avoids the need for resizing the buffer for new data, thereby optimizing memory usage. The trade-off is that the buffer is copied upon each read operation.
+- `Uint8Array` → `RingBufferU8`
+- `Uint16Array` → `RingBufferU16`
+- `Float32Array` → `RingBufferF32`
 
-## Usage
+Each subclass wraps the base `RingBufferBase` with preconfigured types.
 
-### Basic Usage
+---
 
-Here's a quick example to get started:
+## Configuration Options
 
-```typescript
-import { RingBufferF32 } from "ringbud";
+All constructors accept:
 
-const frameSize = 128;
-const buffer = new RingBufferF32(frameSize);
-
-// Write data into the buffer
-const data = new Float32Array([1.1, 2.2, 3.3]);
-buffer.write(data);
-
-// Read data from the buffer
-const readData = buffer.read();
+```ts
+{
+  frameSize: number,                // Number of elements per frame (required)
+  preallocateFrameCount?: number,  // Default: 10
+  frameCacheSize?: number          // Default: 0 (no trim)
+}
 ```
 
-### Advanced Features
+### Frame Cache Size (Clamping)
 
-Drain all available data from the buffer:
+When `frameCacheSize > 0`, the ring buffer trims memory usage by shifting unread bytes after every `.read()`. This reduces buffer growth at the cost of additional memory copying.
 
-```typescript
-const allData = buffer.drain();
+---
+
+## API Reference
+
+### Constructor
+
+```ts
+new RingBufferU8(frameSize: number, options?: {
+  preallocateFrameCount?: number;
+  frameCacheSize?: number;
+});
 ```
 
-## Memory Management
+### Methods
 
-### Memory Preallocation
+| Method              | Description |
+|---------------------|-------------|
+| `write(data)`       | Appends a `TypedArray` to the buffer |
+| `read()`            | Returns the next full frame, or `null` |
+| `drain()`           | Returns remaining **incomplete** data |
+| `peek()`            | Returns the entire buffer content (not a copy) |
+| `empty()`           | `true` if no full frame is available |
+| `remainingFrames()` | Number of full frames available to read |
+| `rewind()`          | Resets read offset so frames can be re-read |
+| `Symbol.iterator()` | Enables `for (const frame of buffer)` |
+| `Symbol.asyncIterator()` | Enables `for await (const frame of buffer)` |
 
-RingBud preallocates memory based on your specified frame size, offering significant performance benefits by reducing the overhead of dynamic memory allocation.
+---
 
-### Clamping for Large Buffers
+## Example: Iteration
 
-With the new clamping feature, RingBud can handle large buffers efficiently without resizing the memory, albeit at the cost of copying the buffer during each read operation.
+```ts
+for (const frame of rb) {
+  console.log(frame); // each is a complete frame
+}
 
-## Extensibility with Typed Arrays
+// or async
+for await (const frame of rb) {
+  await process(frame);
+}
+```
 
-RingBud supports a broad spectrum of Typed Arrays, including Float32Array, Int16Array, Int32Array, Uint8Array, Uint16Array, Uint32Array, and Uint8ClampedArray, providing unparalleled flexibility for different data storage needs.
+---
 
-## Zero Dependencies
+## Example: Auto-Trimming
 
-The library is self-contained and does not rely on any external dependencies, making it highly portable and easy to integrate.
+```ts
+const rb = new RingBufferU8(100, { frameCacheSize: 1 });
 
-## Package Size
+rb.write(new Uint8Array(300)); // 3 frames
+rb.read();                     // returns 1st frame
 
-- Package size: 8.2 kB
-- Unpacked size: 36.5 kB
-- Total files: 40
+// Buffer automatically shifts remaining frames to the front
+rb.peek().subarray(0, 200);    // contains frame 2 and 3
+```
 
-## License
+---
 
-RingBud is licensed under the MIT License. For more details, see the [LICENSE](LICENSE) file.
+## Validations & Safety
+
+- `frameSize` must be an integer ≥ 1
+- `preallocateFrameCount` must be ≥ 1 (if set)
+- Partial frames are never returned from `.read()` or iterators
+- Trimming only occurs **after** reads when `frameCacheSize > 0`
+- If iteration is used, all frames are consumed as if `.read()` was called repeatedly
+- Frames can be shared or copied depending on cache config
+
+---
+
+## TypedArray Support
+
+Internally, the base class accepts any `TypedArray` constructor:
+
+```ts
+new RingBufferBase({
+  frameSize: 256,
+  TypedArrayConstructor: Uint16Array
+});
+```
+
+Built-in classes like `RingBufferF32` are wrappers over this API.
+
+---
+
+## Examples
+
+### Draining Partial Data
+
+```ts
+const rb = new RingBufferU8(100);
+
+rb.write(new Uint8Array(230));
+rb.read();           // reads 1 frame (100 bytes)
+rb.read();           // reads 1 more frame (100 bytes)
+rb.read();           // null (30 bytes left)
+
+rb.drain();          // returns 30 bytes
+```
+
+### Rewind
+
+```ts
+rb.rewind();         // enables re-reading all written frames
+for (const frame of rb) {
+  console.log(frame);
+}
+```
+
+---
