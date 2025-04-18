@@ -8,6 +8,7 @@
     "RingBufferU8.ts",
     "RingBufferU16.ts",
     "RingBufferS16.ts",
-    "RingBufferF32.ts"
+    "RingBufferF32.ts",
+    "RingBufferException.ts"
   ]
 }

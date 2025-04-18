@@ -1,3 +1,4 @@
+import RingBufferException from "./RingBufferException";
 import validateNumber from "./validateNumber";
 
 export type TypedArray =
@@ -9,9 +10,11 @@ export type TypedArray =
   | Uint32Array
   | Uint8ClampedArray;
 
-export interface ITypedArrayConstructor<T extends TypedArray> {
+export interface ITypedArrayConstructor<
+  T extends TypedArray
+> {
   readonly BYTES_PER_ELEMENT: number;
-  new (buffer: ArrayBuffer): T;
+  new(buffer: ArrayBuffer): T;
 }
 
 export interface IRingBufferOptionalOptions {
@@ -87,7 +90,7 @@ export default class RingBufferBase<T extends TypedArray> {
     frameSize,
     frameCacheSize = 0,
     preallocateFrameCount = 10,
-    TypedArrayConstructor,
+    TypedArrayConstructor
   }: IRingBufferOptions<T>) {
     this.#frameSize = validateNumber({
       value: frameSize,
@@ -95,8 +98,8 @@ export default class RingBufferBase<T extends TypedArray> {
       validations: {
         min: 1,
         integer: true,
-        max: MAX_UINT32,
-      },
+        max: MAX_UINT32
+      }
     });
     this.#preallocateFrameCount = validateNumber({
       value: preallocateFrameCount,
@@ -104,8 +107,8 @@ export default class RingBufferBase<T extends TypedArray> {
       validations: {
         min: 1,
         integer: true,
-        max: MAX_UINT32,
-      },
+        max: MAX_UINT32
+      }
     });
     this.#frameCacheSize = validateNumber({
       value: frameCacheSize,
@@ -113,16 +116,25 @@ export default class RingBufferBase<T extends TypedArray> {
       validations: {
         min: 0,
         integer: false,
-        max: MAX_UINT32,
-      },
+        max: MAX_UINT32
+      }
     });
+
+    // Make sure `TypedArrayConstructor` is a typed array
+    if (!("BYTES_PER_ELEMENT" in TypedArrayConstructor)) {
+      throw new RingBufferException(
+        "TypedArrayConstructor must be a typed array"
+      );
+    }
+
     this.#readOffset = 0;
     this.#writeOffset = 0;
     this.#TypedArrayConstructor = TypedArrayConstructor;
-    this.#arrayBuffer = new ArrayBuffer(this.#initialSize());
+    this.#arrayBuffer = new ArrayBuffer(
+      this.#initialSize()
+    );
   }
   /**
-   * Returns true if there are no frames to be read
    * @returns true if there are no frames to be read
    */
   public empty() {
@@ -139,12 +151,14 @@ export default class RingBufferBase<T extends TypedArray> {
   public peek() {
     return this.#view();
   }
-  #view() {
-    return new this.#TypedArrayConstructor(this.#arrayBuffer);
-  }
   public write(value: T) {
     this.#maybeReallocate(value.length);
-    this.#view().set(value, this.#writeOffset);
+    this.#view()
+      .subarray(
+        this.#writeOffset,
+        this.#writeOffset + value.length
+      )
+      .set(value);
     this.#writeOffset += value.length;
   }
   /**
@@ -167,6 +181,11 @@ export default class RingBufferBase<T extends TypedArray> {
   }
   public read(): T | null {
     return this.#read(this.#frameSize);
+  }
+  #view(): T {
+    return new this.#TypedArrayConstructor(
+      this.#arrayBuffer
+    );
   }
   /**
    * This method simply divide the samples available for reading by the
@@ -196,43 +215,67 @@ export default class RingBufferBase<T extends TypedArray> {
     if (!sampleCount) {
       return null;
     }
-    const remainingBytes = this.#remainingSamples();
-    if (remainingBytes >= sampleCount) {
-      let view = this.#view().subarray(
-        this.#readOffset,
-        this.#readOffset + sampleCount,
-      ) as T;
-      this.#readOffset += sampleCount;
-      if (this.#readOffset >= this.#writeOffset) {
-        this.#writeOffset = 0;
-        this.#readOffset = 0;
-      }
-      if (this.#full()) {
-        const drained = this.drain();
-        if (drained) {
-          view = view.slice(0) as T;
-          this.write(drained);
-        }
-      }
-      return view;
+
+    const remainingSampleCount = this.#remainingSamples();
+
+    if (remainingSampleCount < sampleCount) {
+      return null;
     }
-    return null;
+
+    let view = this.#view().subarray(
+      this.#readOffset,
+      this.#readOffset + sampleCount
+    ) as T;
+    this.#readOffset += sampleCount;
+    if (this.#readOffset === this.#writeOffset) {
+      this.#writeOffset = 0;
+      this.#readOffset = 0;
+    }
+    if (this.#full()) {
+      const drained = this.drain();
+      if (drained) {
+        view = view.slice(0) as T;
+        this.write(drained);
+      }
+    }
+
+    return view;
   }
   #maybeReallocate(samples: number) {
     const sampleCountInBytes =
-      samples * this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
-    if (this.#view().length - this.#writeOffset <= samples) {
+      samples *
+      this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
+    if (
+      this.#view().length - this.#writeOffset <=
+      samples
+    ) {
       const oldArrayBuffer = this.#arrayBuffer;
       this.#arrayBuffer = new ArrayBuffer(
-        oldArrayBuffer.byteLength + sampleCountInBytes + this.#initialSize(),
+        oldArrayBuffer.byteLength +
+        sampleCountInBytes +
+        this.#initialSize()
       );
-      this.#view().set(new this.#TypedArrayConstructor(oldArrayBuffer));
+      this.#view().set(
+        new this.#TypedArrayConstructor(oldArrayBuffer)
+      );
     }
+
+    // Return a reference to the new view sliced into a new frame
+    return this.#view().subarray(
+      this.#readOffset,
+      this.#readOffset + this.#frameSize
+    );
   }
+
   #initialSize() {
     const bytesPerFrame =
-      this.#frameSize * this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
+      this.#frameSize *
+      this.#TypedArrayConstructor.BYTES_PER_ELEMENT;
     return bytesPerFrame * this.#preallocateFrameCount;
+  }
+
+  [Symbol.toStringTag]() {
+    return "RingBuffer";
   }
 
   [Symbol.iterator]() {
