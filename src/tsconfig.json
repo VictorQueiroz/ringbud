@@ -7,7 +7,9 @@
     "validateNumber.ts",
     "RingBufferU8.ts",
     "RingBufferU16.ts",
+    "RingBufferU32.ts",
     "RingBufferS16.ts",
+    "RingBufferS32.ts",
     "RingBufferF32.ts",
     "RingBufferException.ts"
   ]
