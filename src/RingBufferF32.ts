@@ -1,5 +1,5 @@
-import { IRingBufferSubclassOptions } from "./types";
 import RingBufferBase from "./RingBufferBase";
+import { IRingBufferSubclassOptions } from "./types";
 
 export default class RingBufferF32 extends RingBufferBase<Float32Array> {
   public constructor(
@@ -11,5 +11,9 @@ export default class RingBufferF32 extends RingBufferBase<Float32Array> {
       frameSize,
       TypedArrayConstructor: Float32Array
     });
+  }
+
+  override get [Symbol.toStringTag]() {
+    return "RingBufferF32";
   }
 }

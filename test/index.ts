@@ -4,7 +4,10 @@ import {
   RingBufferBase,
   RingBufferException,
   RingBufferF32,
+  RingBufferS16,
+  RingBufferS32,
   RingBufferU16,
+  RingBufferU32,
   RingBufferU8
 } from "../src";
 
@@ -621,7 +624,7 @@ test("that the ring buffer copies the frame buffer as soon as the ring buffer re
     frame1.buffer,
     frame2.buffer,
     "the first frame is a copy, but the ring buffer frame cache size is 2. " +
-      "The ring buffer should only return a copy when the ring buffer read offset reaches the end of the buffer"
+    "The ring buffer should only return a copy when the ring buffer read offset reaches the end of the buffer"
   );
 
   assert.strict.ok(frame1 !== null);
@@ -666,3 +669,308 @@ test("that the ring buffer will always spits out a non-corrupted frames", (t) =>
   t.deepEqual(frame6, new Uint8Array(frameSize).fill(64));
   t.deepEqual(frame7, new Uint8Array(frameSize).fill(128));
 });
+
+test('that the ring buffer stops eating frames if the async for loop is cancelled', async (t) => {
+  const frameSize = 32;
+  const rb = new RingBufferU8(frameSize, {
+    frameCacheSize: 1
+  });
+
+  rb.write(new Uint8Array(frameSize).fill(2));
+  rb.write(new Uint8Array(frameSize).fill(4));
+  rb.write(new Uint8Array(frameSize).fill(8));
+  rb.write(new Uint8Array(frameSize).fill(16));
+  rb.write(new Uint8Array(frameSize).fill(32));
+  rb.write(new Uint8Array(frameSize).fill(64));
+  rb.write(new Uint8Array(frameSize).fill(128));
+
+  for await (const _ of rb) {
+    break;
+  }
+
+  const frameCount1 = rb.remainingFrames();
+
+  t.is(
+    frameCount1,
+    6,
+    `Expected the ring buffer to stop reading frames if the async for loop is cancelled. (e.g. with a \`break;\` keyword)`
+  );
+});
+
+test('that the ring buffer stops eating frames if the synchronous for-of loop is cancelled', (t) => {
+  const frameSize = 32;
+  const rb = new RingBufferU8(frameSize, {
+    frameCacheSize: 1
+  });
+
+  rb.write(new Uint8Array(frameSize).fill(2));
+  rb.write(new Uint8Array(frameSize).fill(4));
+  rb.write(new Uint8Array(frameSize).fill(8));
+  rb.write(new Uint8Array(frameSize).fill(16));
+  rb.write(new Uint8Array(frameSize).fill(32));
+  rb.write(new Uint8Array(frameSize).fill(64));
+  rb.write(new Uint8Array(frameSize).fill(128));
+
+  for (const _ of rb) {
+    break;
+  }
+
+  const frameCount1 = rb.remainingFrames();
+
+  t.is(
+    frameCount1,
+    6,
+    `Expected the ring buffer to stop reading frames if the synchronous for-of loop is cancelled. (e.g. with a \`break;\` keyword)`
+  );
+});
+
+test('that you can still read frames ring buffer can still read frames after the async for loop is cancelled', async (t) => {
+  const frameSize = 32;
+  const rb = new RingBufferU8(frameSize, {
+    frameCacheSize: 1
+  });
+
+  rb.write(new Uint8Array(frameSize).fill(2));
+  rb.write(new Uint8Array(frameSize).fill(4));
+  rb.write(new Uint8Array(frameSize).fill(8));
+  rb.write(new Uint8Array(frameSize).fill(16));
+  rb.write(new Uint8Array(frameSize).fill(32));
+  rb.write(new Uint8Array(frameSize).fill(64));
+  rb.write(new Uint8Array(frameSize).fill(128));
+
+  // Frame missed
+  for await (const _ of rb) {
+    break;
+  }
+
+  // Since frame 2
+  const frame2 = rb.read();
+  t.deepEqual(frame2, new Uint8Array(frameSize).fill(4));
+
+  // Frame missed
+  for await (const _ of rb) {
+    break;
+  }
+
+  // Since frame 4
+  const frame4 = rb.read();
+  t.deepEqual(frame4, new Uint8Array(frameSize).fill(16));
+
+  const frame5 = rb.read();
+  t.deepEqual(frame5, new Uint8Array(frameSize).fill(32));
+
+  const frame6 = rb.read();
+  t.deepEqual(frame6, new Uint8Array(frameSize).fill(64));
+
+  const frame7 = rb.read();
+  t.deepEqual(frame7, new Uint8Array(frameSize).fill(128));
+});
+
+test('that you can still read frames from the ring buffer after the synchronous for-of loop is cancelled ', (t) => {
+  const frameSize = 32;
+  const rb = new RingBufferU8(frameSize, {
+    frameCacheSize: 1
+  });
+
+  rb.write(new Uint8Array(frameSize).fill(2));
+  rb.write(new Uint8Array(frameSize).fill(4));
+  rb.write(new Uint8Array(frameSize).fill(8));
+  rb.write(new Uint8Array(frameSize).fill(16));
+  rb.write(new Uint8Array(frameSize).fill(32));
+  rb.write(new Uint8Array(frameSize).fill(64));
+  rb.write(new Uint8Array(frameSize).fill(128));
+
+  // Frame missed
+  for (const _ of rb) {
+    break;
+  }
+
+  // Since frame 2
+  const frame2 = rb.read();
+  t.deepEqual(frame2, new Uint8Array(frameSize).fill(4));
+
+  // Frame missed
+  for (const _ of rb) {
+    break;
+  }
+
+  // Since frame 4
+  const frame4 = rb.read();
+  t.deepEqual(frame4, new Uint8Array(frameSize).fill(16));
+
+  const frame5 = rb.read();
+  t.deepEqual(frame5, new Uint8Array(frameSize).fill(32));
+
+  const frame6 = rb.read();
+  t.deepEqual(frame6, new Uint8Array(frameSize).fill(64));
+
+  const frame7 = rb.read();
+  t.deepEqual(frame7, new Uint8Array(frameSize).fill(128));
+});
+
+test('that you can still read frames from the ring buffer after the synchronous for-of loop is cancelled and frame cache size is 0', (t) => {
+  const frameSize = 32;
+  const rb = new RingBufferU8(frameSize, {
+    frameCacheSize: 0
+  });
+
+  rb.write(new Uint8Array(frameSize).fill(2));
+  rb.write(new Uint8Array(frameSize).fill(4));
+  rb.write(new Uint8Array(frameSize).fill(8));
+  rb.write(new Uint8Array(frameSize).fill(16));
+  rb.write(new Uint8Array(frameSize).fill(32));
+  rb.write(new Uint8Array(frameSize).fill(64));
+  rb.write(new Uint8Array(frameSize).fill(128));
+
+  // Frame missed
+  for (const _ of rb) {
+    break;
+  }
+
+  // Since frame 2
+  const frame2 = rb.read();
+  t.deepEqual(frame2, new Uint8Array(frameSize).fill(4));
+
+  // Frame missed
+  for (const _ of rb) {
+    break;
+  }
+
+  // Since frame 4
+  const frame4 = rb.read();
+  t.deepEqual(frame4, new Uint8Array(frameSize).fill(16));
+
+  const frame5 = rb.read();
+  t.deepEqual(frame5, new Uint8Array(frameSize).fill(32));
+
+  const frame6 = rb.read();
+  t.deepEqual(frame6, new Uint8Array(frameSize).fill(64));
+
+  const frame7 = rb.read();
+  t.deepEqual(frame7, new Uint8Array(frameSize).fill(128));
+});
+
+test("it should reallocate buffer when writing beyond initial capacity", (t) => {
+  const rb = new RingBufferU8(10, { preallocateFrameCount: 1 });
+  const initialBufferSize = rb.peek().length;
+  t.is(initialBufferSize, 10);
+
+  rb.write(new Uint8Array(20).fill(5));
+  t.true(rb.peek().length >= 20);
+
+  const frame1 = rb.read();
+  t.deepEqual(frame1, new Uint8Array(10).fill(5));
+  const frame2 = rb.read();
+  t.deepEqual(frame2, new Uint8Array(10).fill(5));
+});
+
+test("peek should return remaining data after partial read", (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(new Uint8Array(200).fill(1));
+  rb.read();
+  const remaining = rb.peek().subarray(0, 100);
+  t.deepEqual(remaining, new Uint8Array(100).fill(1));
+});
+
+test("drain should return all remaining samples even if not a full frame", (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(new Uint8Array(150).fill(3));
+  const drained = rb.drain();
+  t.deepEqual(drained, new Uint8Array(150).fill(3));
+  t.true(rb.empty());
+});
+
+test("writing an empty array does not change the buffer state", (t) => {
+  const rb = new RingBufferU8(100);
+  t.true(rb.empty());
+  rb.write(new Uint8Array(0));
+  t.true(rb.empty());
+});
+
+test("initial buffer size is based on preallocateFrameCount and frameSize", (t) => {
+  const frameSize = 10;
+  const preallocate = 5;
+  const rb = new RingBufferU8(frameSize, { preallocateFrameCount: preallocate });
+  t.is(rb.peek().length, frameSize * preallocate);
+});
+
+test("RingBufferS16 handles negative values correctly", (t) => {
+  const rb = new RingBufferS16(2);
+  const data = new Int16Array([-1, 2, -3, 4]);
+  rb.write(data);
+  t.deepEqual(rb.read(), new Int16Array([-1, 2]));
+  t.deepEqual(rb.read(), new Int16Array([-3, 4]));
+});
+
+test("after draining, read returns null", (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(new Uint8Array(100).fill(1));
+  rb.drain();
+  t.is(rb.read(), null);
+});
+
+test("consecutive writes and reads maintain correct state", (t) => {
+  const rb = new RingBufferU8(2);
+  rb.write(new Uint8Array([1, 2]));
+  rb.write(new Uint8Array([3, 4]));
+  t.deepEqual(rb.read(), new Uint8Array([1, 2]));
+  rb.write(new Uint8Array([5, 6]));
+  t.deepEqual(rb.read(), new Uint8Array([3, 4]));
+  t.deepEqual(rb.read(), new Uint8Array([5, 6]));
+});
+
+test("frameSize of 1 works correctly", (t) => {
+  const rb = new RingBufferU8(1);
+  rb.write(new Uint8Array([1, 2, 3]));
+  t.is(rb.remainingFrames(), 3);
+  t.deepEqual(rb.read(), new Uint8Array([1]));
+  t.deepEqual(rb.read(), new Uint8Array([2]));
+  t.deepEqual(rb.read(), new Uint8Array([3]));
+});
+
+test("handles large number of frames correctly", (t) => {
+  const frameSize = 10;
+  const rb = new RingBufferU8(frameSize);
+  const totalFrames = 1000;
+  const data = new Uint8Array(totalFrames * frameSize).fill(5);
+  rb.write(data);
+  let count = 0;
+  while (rb.remainingFrames() > 0) {
+    const frame = rb.read();
+    t.deepEqual(frame, new Uint8Array(frameSize).fill(5));
+    count++;
+  }
+  t.is(count, totalFrames);
+});
+
+test("after trimming, new writes start at buffer beginning", (t) => {
+  const rb = new RingBufferU8(100, { frameCacheSize: 1 });
+  rb.write(new Uint8Array(300).fill(1));
+  rb.read();
+  rb.write(new Uint8Array(50).fill(2));
+  const drained = rb.drain();
+  assert.strict.ok(drained !== null);
+  t.is(drained.length, 250);
+  t.deepEqual(drained.subarray(0, 200), new Uint8Array(200).fill(1));
+  t.deepEqual(drained.subarray(200), new Uint8Array(50).fill(2));
+});
+
+test("writing less than a full frame does not increase remainingFrames", (t) => {
+  const rb = new RingBufferU8(100);
+  rb.write(new Uint8Array(99));
+  t.is(rb.remainingFrames(), 0);
+});
+
+for (const [TypedArray, expectedToStringTagValue] of [
+  [RingBufferU8, 'RingBufferU8'],
+  [RingBufferU16, 'RingBufferU16'],
+  [RingBufferU32, 'RingBufferU32'],
+  [RingBufferS16, 'RingBufferS16'],
+  [RingBufferS32, 'RingBufferS32'],
+  [RingBufferF32, 'RingBufferF32'],
+] as const) {
+  test(`${expectedToStringTagValue}: instance has correct Symbol.toStringTag`, (t) => {
+    const rb = new TypedArray(100);
+    t.is(rb[Symbol.toStringTag], expectedToStringTagValue);
+  });
+}

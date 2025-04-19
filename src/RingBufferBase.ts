@@ -274,7 +274,7 @@ export default class RingBufferBase<T extends TypedArray> {
     return bytesPerFrame * this.#preallocateFrameCount;
   }
 
-  [Symbol.toStringTag]() {
+  get [Symbol.toStringTag]() {
     return "RingBuffer";
   }
 

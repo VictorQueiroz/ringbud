@@ -1,5 +1,5 @@
-import { IRingBufferSubclassOptions } from "./types";
 import RingBufferBase from "./RingBufferBase";
+import { IRingBufferSubclassOptions } from "./types";
 
 export default class RingBufferU8 extends RingBufferBase<Uint8Array> {
   public constructor(
@@ -11,5 +11,9 @@ export default class RingBufferU8 extends RingBufferBase<Uint8Array> {
       frameSize,
       TypedArrayConstructor: Uint8Array
     });
+  }
+
+  override get [Symbol.toStringTag]() {
+    return "RingBufferU8";
   }
 }
